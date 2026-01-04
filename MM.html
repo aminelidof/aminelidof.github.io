@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoCheck Pro - Système d'Expertise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .chat-area { height: 400px; overflow-y: auto; scroll-behavior: smooth; }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 15px 30px -5px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+    <nav class="bg-white shadow-sm sticky top-0 z-50 border-b">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+                    <i class="fas fa-car text-white"></i>
+                </div>
+                <span class="font-black text-xl tracking-tight">AutoCheck <span class="text-indigo-600">Pro</span></span>
+            </div>
+            <div id="navItems" class="hidden flex items-center gap-6">
+                <button onclick="openMessenger()" class="relative text-slate-600 hover:text-indigo-600">
+                    <i class="fas fa-envelope text-xl"></i>
+                    <span id="badge" class="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center hidden font-bold">0</span>
+                </button>
+                <div class="flex items-center gap-3 border-l pl-6">
+                    <span id="displayUser" class="font-bold text-slate-700"></span>
+                    <button onclick="logout()" class="text-sm text-red-500 font-bold hover:underline">Quitter</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div id="authBox" class="container mx-auto px-6 max-w-md py-16">
+        <div class="bg-white rounded-3xl shadow-xl p-8 border border-slate-100">
+            <h2 class="text-3xl font-black mb-2 text-slate-800" id="title">Connexion</h2>
+            <p class="text-slate-500 mb-8" id="subtitle">Gérez vos analyses de véhicules.</p>
+            
+            <form id="authForm" class="space-y-4">
+                <input type="text" id="user" placeholder="Nom d'utilisateur" required class="w-full p-4 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500">
+                <input type="password" id="pass" placeholder="Mot de passe" required class="w-full p-4 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500">
+                
+                <div id="regFields" class="hidden space-y-4 pt-4 border-t">
+                    <label class="block text-sm font-bold text-slate-700">Type de compte :</label>
+                    <select id="role" onchange="toggleProFields()" class="w-full p-4 bg-white border rounded-2xl outline-none">
+                        <option value="buyer">👤 Acheteur (Client)</option>
+                        <option value="mechanic">🔧 Professionnel (Expert)</option>
+                    </select>
+
+                    <div id="proDetails" class="hidden space-y-4">
+                        <label class="block text-sm font-bold text-slate-700">Spécialité :</label>
+                        <select id="specialty" class="w-full p-4 bg-white border rounded-2xl outline-none">
+                            <option value="mecanicien">Mécanicien</option>
+                            <option value="tollier">Tollier</option>
+                            <option value="both">Les Deux</option>
+                        </select>
+                        <label class="block text-sm font-bold text-slate-700">Ville d'analyse :</label>
+                        <input type="text" id="proCity" placeholder="Ex: Alger, Oran..." class="w-full p-4 bg-slate-50 border rounded-2xl outline-none">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition-all">VALIDER</button>
+                <button type="button" onclick="toggleReg()" class="w-full text-indigo-600 text-sm font-bold mt-2">S'inscrire</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="adminDash" class="hidden container mx-auto px-6 py-10">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                <h2 class="text-2xl font-black mb-6 text-slate-800">📊 Statistiques</h2>
+                <div class="grid grid-cols-3 gap-4" id="statsArea"></div>
+            </div>
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                <h3 class="text-xl font-black mb-4 text-slate-800">🔍 Filtres Rapides</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <input type="text" id="filterCity" onkeyup="renderAdmin()" placeholder="Ville..." class="p-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    <select id="filterStatus" onchange="renderAdmin()" class="p-3 bg-slate-50 border rounded-xl outline-none text-sm font-bold">
+                        <option value="">Tous les statuts</option>
+                        <option value="En attente">En attente</option>
+                        <option value="Expert Assigné">Expert Assigné</option>
+                        <option value="Analyse Terminée">Terminées</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-2 mb-8 flex gap-2 overflow-x-auto">
+            <button onclick="setAdminTab('all')" id="tab-all" class="flex-1 py-3 px-4 rounded-2xl font-bold transition-all bg-indigo-600 text-white">Toutes</button>
+            <button onclick="setAdminTab('mecanicien')" id="tab-mecanicien" class="flex-1 py-3 px-4 rounded-2xl font-bold text-slate-600 hover:bg-slate-100">🔧 Mécaniciens</button>
+            <button onclick="setAdminTab('tollier')" id="tab-tollier" class="flex-1 py-3 px-4 rounded-2xl font-bold text-slate-600 hover:bg-slate-100">🛠️ Tolliers</button>
+            <button onclick="setAdminTab('both')" id="tab-both" class="flex-1 py-3 px-4 rounded-2xl font-bold text-slate-600 hover:bg-slate-100">🔧🛠️ Les Deux</button>
+        </div>
+
+        <div id="adminList" class="space-y-4"></div>
+    </div>
+
+    <div id="buyerDash" class="hidden container mx-auto px-6 py-10 max-w-5xl">
+        <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 mb-8">
+            <h2 class="text-2xl font-black mb-6 text-slate-800">Nouvelle Demande</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input type="text" id="brand" placeholder="Modèle du véhicule" class="p-4 border rounded-2xl outline-none">
+                <input type="text" id="carCity" placeholder="Ville actuelle" class="p-4 border rounded-2xl outline-none">
+                <select id="needs" class="p-4 border rounded-2xl outline-none bg-white font-semibold">
+                    <option value="mecanicien">Mécanique (2000 DA)</option>
+                    <option value="tollier">Tôlerie (2000 DA)</option>
+                    <option value="both">Les Deux (4000 DA)</option>
+                </select>
+            </div>
+            <button onclick="addRequest()" class="mt-6 bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black shadow-lg">LANCER L'ANALYSE</button>
+        </div>
+        <div id="buyerList" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+    </div>
+
+    <div id="mechanicDash" class="hidden container mx-auto px-6 py-10 max-w-5xl">
+        <div id="proWelcome" class="mb-8 p-6 bg-indigo-900 text-white rounded-3xl"></div>
+        <div id="mechanicList" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+    </div>
+
+    <div id="msgModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+        <div class="w-full max-w-4xl h-[80vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="p-6 border-b flex justify-between items-center bg-indigo-50">
+                <h3 class="font-black text-xl text-indigo-900">Messages Privés</h3>
+                <button onclick="closeMessenger()" class="text-2xl text-slate-400">&times;</button>
+            </div>
+            <div class="flex flex-1 overflow-hidden">
+                <div class="w-1/3 border-r overflow-y-auto p-4 space-y-2 bg-slate-50" id="contactsList"></div>
+                <div class="flex-1 flex flex-col">
+                    <div id="chatBox" class="chat-area p-6 space-y-4 bg-white flex-1"></div>
+                    <div class="p-4 border-t flex gap-2">
+                        <input type="text" id="msgInput" class="flex-1 p-3 border rounded-xl outline-none" placeholder="Votre message...">
+                        <button onclick="sendMsg()" class="bg-indigo-600 text-white px-6 rounded-xl"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let appState = {
+            users: JSON.parse(localStorage.getItem('autocheck_users')) || [{username:'admin', password:'123', role:'admin'}],
+            requests: JSON.parse(localStorage.getItem('autocheck_reqs')) || [],
+            chats: JSON.parse(localStorage.getItem('autocheck_chats')) || [],
+            curUser: null,
+            adminTab: 'all'
+        };
+
+        function save() {
+            localStorage.setItem('autocheck_users', JSON.stringify(appState.users));
+            localStorage.setItem('autocheck_reqs', JSON.stringify(appState.requests));
+            localStorage.setItem('autocheck_chats', JSON.stringify(appState.chats));
+        }
+
+        // --- AUTH ---
+        function toggleReg() {
+            const isReg = document.getElementById('title').innerText === "Inscription";
+            document.getElementById('title').innerText = isReg ? "Connexion" : "Inscription";
+            document.getElementById('regFields').classList.toggle('hidden');
+        }
+
+        function toggleProFields() {
+            const role = document.getElementById('role').value;
+            document.getElementById('proDetails').classList.toggle('hidden', role !== 'mechanic');
+        }
+
+        document.getElementById('authForm').addEventListener('submit', e => {
+            e.preventDefault();
+            const u = document.getElementById('user').value.trim();
+            const p = document.getElementById('pass').value;
+
+            if(document.getElementById('title').innerText === "Inscription") {
+                const role = document.getElementById('role').value;
+                const newUser = { username:u, password:p, role:role };
+                if(role === 'mechanic') {
+                    newUser.specialty = document.getElementById('specialty').value;
+                    newUser.city = document.getElementById('proCity').value.trim();
+                }
+                appState.users.push(newUser);
+                save(); alert("Compte créé !"); toggleReg(); return;
+            }
+
+            const user = appState.users.find(x => x.username === u && x.password === p);
+            if(user) {
+                appState.curUser = user;
+                document.getElementById('authBox').classList.add('hidden');
+                document.getElementById('navItems').classList.remove('hidden');
+                document.getElementById('displayUser').innerText = user.username;
+                refreshUI();
+            } else alert("Erreur d'identifiants");
+        });
+
+        function logout() { location.reload(); }
+
+        // --- UI REFRESH ---
+        function refreshUI() {
+            const r = appState.curUser.role;
+            if(r === 'admin') { document.getElementById('adminDash').classList.remove('hidden'); renderAdmin(); }
+            else if(r === 'mechanic') { document.getElementById('mechanicDash').classList.remove('hidden'); renderMechanic(); }
+            else { document.getElementById('buyerDash').classList.remove('hidden'); renderBuyer(); }
+        }
+
+        // --- ADMIN VIEW ---
+        function setAdminTab(tab) {
+            appState.adminTab = tab;
+            document.querySelectorAll('[id^="tab-"]').forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'text-white');
+                btn.classList.add('text-slate-600', 'hover:bg-slate-100');
+            });
+            const active = document.getElementById(`tab-${tab}`);
+            active.classList.add('bg-indigo-600', 'text-white');
+            active.classList.remove('text-slate-600');
+            renderAdmin();
+        }
+
+        function renderAdmin() {
+            const stats = {
+                req: appState.requests.length,
+                pros: appState.users.filter(u => u.role === 'mechanic').length,
+                buyers: appState.users.filter(u => u.role === 'buyer').length
+            };
+            document.getElementById('statsArea').innerHTML = `
+                <div class="bg-indigo-50 p-4 rounded-2xl text-center"><div class="text-2xl font-black text-indigo-600">${stats.req}</div><div class="text-[9px] uppercase font-bold text-slate-500">Demandes</div></div>
+                <div class="bg-green-50 p-4 rounded-2xl text-center"><div class="text-2xl font-black text-green-600">${stats.pros}</div><div class="text-[9px] uppercase font-bold text-slate-500">Experts</div></div>
+                <div class="bg-blue-50 p-4 rounded-2xl text-center"><div class="text-2xl font-black text-blue-600">${stats.buyers}</div><div class="text-[9px] uppercase font-bold text-slate-500">Clients</div></div>
+            `;
+
+            const cityFilter = document.getElementById('filterCity').value.toLowerCase();
+            const statusFilter = document.getElementById('filterStatus').value;
+            const pros = appState.users.filter(u => u.role === 'mechanic');
+
+            const filtered = appState.requests.filter(r => {
+                return r.city.toLowerCase().includes(cityFilter) && 
+                       (statusFilter === "" || r.status === statusFilter) &&
+                       (appState.adminTab === 'all' || r.needs === appState.adminTab);
+            });
+
+            document.getElementById('adminList').innerHTML = filtered.map(r => {
+                const compatPros = pros.filter(p => p.city.toLowerCase() === r.city.toLowerCase() && (p.specialty === r.needs || p.specialty === 'both'));
+                return `
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center card-hover">
+                    <div class="flex-1">
+                        <div class="font-black text-slate-800">${r.brand} <span class="font-normal text-slate-400 text-sm">(${r.buyer})</span></div>
+                        <div class="text-xs font-bold text-indigo-600"><i class="fas fa-map-marker-alt mr-1"></i>${r.city} | Besoin: ${r.needs}</div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <select onchange="assignPro(${r.id}, this.value)" class="p-2 bg-slate-50 border rounded-xl text-xs font-bold outline-none">
+                            <option value="">Assigner Expert Local...</option>
+                            ${compatPros.map(p => `<option value="${p.username}" ${r.assignedTo === p.username ? 'selected' : ''}>✅ ${p.username}</option>`).join('')}
+                            <optgroup label="Autres">
+                            ${pros.filter(p => !compatPros.includes(p)).map(p => `<option value="${p.username}" ${r.assignedTo === p.username ? 'selected' : ''}>${p.username} (${p.city})</option>`).join('')}
+                            </optgroup>
+                        </select>
+                        <button onclick="openChatWith('${r.buyer}')" class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center"><i class="fas fa-comment"></i></button>
+                    </div>
+                </div>`;
+            }).join('') || '<div class="text-center py-10 text-slate-400 font-bold">Aucune demande trouvée.</div>';
+        }
+
+        function assignPro(id, user) {
+            const r = appState.requests.find(x => x.id === id);
+            if(r) { r.assignedTo = user; r.status = user ? 'Expert Assigné' : 'En attente'; save(); renderAdmin(); }
+        }
+
+        // --- BUYER VIEW ---
+        function addRequest() {
+            const b = document.getElementById('brand').value;
+            const c = document.getElementById('carCity').value;
+            const n = document.getElementById('needs').value;
+            if(!b || !c) return alert("Remplissez les champs");
+            appState.requests.unshift({ id: Date.now(), buyer: appState.curUser.username, brand:b, city:c, needs:n, status:'En attente', assignedTo:null });
+            save(); refreshUI();
+        }
+
+        function renderBuyer() {
+            const list = appState.requests.filter(r => r.buyer === appState.curUser.username);
+            document.getElementById('buyerList').innerHTML = list.map(r => `
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 card-hover">
+                    <div class="flex justify-between items-start mb-4">
+                        <h4 class="font-black text-xl">${r.brand}</h4>
+                        <span class="text-[10px] font-bold px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full uppercase">${r.status}</span>
+                    </div>
+                    <p class="text-slate-500 text-sm mb-4"><i class="fas fa-map-marker-alt mr-2"></i>${r.city}</p>
+                    <div class="pt-4 border-t flex justify-between items-center text-xs font-bold">
+                        <span class="text-slate-400">Expert: ${r.assignedTo || '---'}</span>
+                        <button onclick="openChatWith('admin')" class="text-indigo-600">Support</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- PRO VIEW ---
+        function renderMechanic() {
+            const u = appState.curUser;
+            document.getElementById('proWelcome').innerHTML = `<h3 class="text-xl font-bold">Bonjour ${u.username}</h3><p class="text-indigo-200">Spécialité: ${u.specialty} | Ville: ${u.city}</p>`;
+            const missions = appState.requests.filter(r => r.assignedTo === u.username);
+            document.getElementById('mechanicList').innerHTML = missions.map(r => `
+                <div class="bg-white p-6 rounded-3xl shadow-lg border-t-4 border-indigo-600">
+                    <div class="flex justify-between mb-4"><h4 class="text-2xl font-black">${r.brand}</h4><span class="bg-red-50 text-red-600 px-3 py-1 rounded-full text-xs font-bold">${r.city}</span></div>
+                    <p class="text-slate-500 text-sm mb-6 uppercase font-bold">Besoin : ${r.needs}</p>
+                    <div class="flex gap-2">
+                        <button onclick="finishMission(${r.id})" class="flex-1 bg-green-600 text-white py-4 rounded-2xl font-black shadow-lg">TERMINER</button>
+                        <button onclick="openChatWith('admin')" class="px-6 bg-slate-100 rounded-2xl"><i class="fas fa-headset"></i></button>
+                    </div>
+                </div>
+            `).join('') || '<p class="col-span-full text-center py-20 text-slate-400 font-bold">Aucune mission assignée.</p>';
+        }
+
+        function finishMission(id) {
+            const r = appState.requests.find(x => x.id === id);
+            if(r) { r.status = 'Analyse Terminée'; save(); renderMechanic(); }
+        }
+
+        // --- MESSAGERIE ---
+        function openMessenger() { document.getElementById('msgModal').classList.remove('hidden'); renderContacts(); }
+        function closeMessenger() { document.getElementById('msgModal').classList.add('hidden'); }
+        function renderContacts() {
+            const others = appState.users.filter(u => u.username !== appState.curUser.username);
+            document.getElementById('contactsList').innerHTML = others.map(u => `
+                <div onclick="openChatWith('${u.username}')" class="p-4 rounded-2xl cursor-pointer hover:bg-white ${appState.selectedContact === u.username ? 'bg-white shadow-md font-bold' : ''}">
+                    <div class="text-sm">${u.username}</div>
+                    <div class="text-[10px] text-slate-400 uppercase">${u.role} ${u.city ? '- ' + u.city : ''}</div>
+                </div>`).join('');
+        }
+        function openChatWith(u) { appState.selectedContact = u; openMessenger(); loadMessages(); }
+        function loadMessages() {
+            if(!appState.selectedContact) return;
+            const msgs = appState.chats.filter(m => (m.from === appState.curUser.username && m.to === appState.selectedContact) || (m.from === appState.selectedContact && m.to === appState.curUser.username));
+            document.getElementById('chatBox').innerHTML = msgs.map(m => `
+                <div class="flex ${m.from === appState.curUser.username ? 'justify-end' : 'justify-start'}">
+                    <div class="max-w-[80%] p-3 rounded-2xl ${m.from === appState.curUser.username ? 'bg-indigo-600 text-white' : 'bg-slate-100'}">${m.text}</div>
+                </div>`).join('');
+            document.getElementById('chatBox').scrollTop = document.getElementById('chatBox').scrollHeight;
+        }
+        function sendMsg() {
+            const txt = document.getElementById('msgInput').value.trim();
+            if(!txt || !appState.selectedContact) return;
+            appState.chats.push({from: appState.curUser.username, to: appState.selectedContact, text: txt});
+            document.getElementById('msgInput').value = ''; save(); loadMessages();
+        }
+    </script>
+</body>
+</html>
